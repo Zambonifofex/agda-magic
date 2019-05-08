@@ -1,0 +1,17 @@
+name: xxxx
+version: 0
+build-type: Simple
+cabal-version: >= 1.2
+
+executable xxxx
+       main-is: Main.hs
+       build-depends:
+              base,
+              ghc,
+              ghc-paths,
+              directory,
+              filepath,
+              containers
+       other-modules: XXXX.SourceCode
+       hs-source-dirs: src/haskell
+       ghc-options: -Wno-tabs -Wunused-imports -Wunused-binds
