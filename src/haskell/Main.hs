@@ -9,7 +9,6 @@ import GHC
 		lookupName,
 		getModuleInfo,
 		moduleNameString,
-		moduleNameString,
 		moduleName,
 		mkModule,
 		TyThing (AnId, AConLike, ATyCon, ACoAxiom),
@@ -100,6 +99,7 @@ import TyCon
 import PrelNames (tYPETyConKey, getUnique, runtimeRepTyConKey, constraintKindTyConKey)
 import Data.List (partition)
 import DataCon (dataConInstSig, flSelector, dataConFieldType, flLabel)
+import qualified Data.Set as Set
 
 data TyThingStyle =
 	Id |
@@ -300,8 +300,9 @@ get_modules flags package = (>>= return . mapMaybe id) $
 				liftIO $ putStrLn ""
 				let x = modInfoExports info
 				all_ex <- mapM lookupName x
-				let (ex, _) = partition ((mod ==) . nameModule . fst) (zip x all_ex)
+				let (ex, rex) = partition ((mod ==) . nameModule . fst) (zip x all_ex)
 				let exports = ($ ex) $ fromListWith (++) . map ((. snd) $ \ (Just tyth) -> (case tyth of AnId _ -> Id ; AConLike _ -> ConLike ; ATyCon _ -> TyCon ; ACoAxiom _ -> CoAxiom, [tyth]))
+				let reexports = fromListWith (Set.union) . ($ rex) $ map ((. snd) $ \ (Just tyth) -> (moduleNameString . moduleName . nameModule $ getName tyth, Set.singleton $ getOccString tyth))
 				functions <- get_functions flags $ fromMaybe [] $ Map.lookup Id exports
 				(postulated_types, types) <- get_types flags $ fromMaybe [] $ Map.lookup TyCon exports
 				return
@@ -310,7 +311,7 @@ get_modules flags package = (>>= return . mapMaybe id) $
 						module_name = name,
 						module_functions = functions,
 						module_types = types,
-						module_reexports = Map.empty,
+						module_reexports = reexports,
 						module_postulated_types = postulated_types
 					}
 

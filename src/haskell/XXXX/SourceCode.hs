@@ -236,12 +236,13 @@ show_mod im m =
 	join2
 	[
 		"module " ++ mod ++ " where",
-		show_imports im,
+		show_imports False im,
 		"import Agda.Primitive",
 		"private variable \x2113 : Agda.Primitive.Level",
 		block "postulate" (map show_function_signature_with_fixity $ module_postulated_types m),
 		show_type_declarations (module_types m),
-		block "postulate" (map show_function_signature_with_fixity $ module_functions m)
+		block "postulate" (map show_function_signature_with_fixity $ module_functions m),
+		show_imports True (module_reexports m)
 	]
 	where mod = module_name m
 
@@ -266,12 +267,12 @@ generate_imports mod = Map.filterWithKey (flip $ const $ (module_name mod /=)) $
 normalize_imports :: Imports -> Imports
 normalize_imports = (. Map.toList) $ snd . foldl (\ (insofar, result) (mod_name, ids) -> (Set.union insofar ids, Map.insert mod_name (Set.difference ids insofar) result)) (Set.empty, Map.empty)
 
-show_import :: String -> Set String -> String
-show_import mod im | Set.null im = "import " ++ mod
-show_import mod im = "open import " ++ mod ++ " using (" ++ intercalate " ; " (Set.toList im) ++ ")"
+show_import :: Bool -> String -> Set String -> String
+show_import _ mod im | Set.null im = "import " ++ mod
+show_import reexport mod im = "open import " ++ mod ++ " using (" ++ intercalate " ; " (Set.toList im) ++ ")" ++ (if reexport then " public" else "")
 
-show_imports :: Imports -> String
-show_imports im = join $ map (uncurry show_import) (Map.toList im)
+show_imports :: Bool -> Imports -> String
+show_imports reexport im = join $ map (uncurry (show_import reexport)) (Map.toList im)
 
 show_direction :: Direction -> String
 show_direction Left = "infixl"
